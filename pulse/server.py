@@ -3,10 +3,31 @@ import asyncio
 READ_SIZE = 4096
 
 
+class Request:
+    def __init__(self, raw_data: bytes): ...
+
+
+class Response:
+    def build(self) -> bytes: ...
+
+
+class Router:
+    def route(self, request: Request) -> Response: ...
+
+
+class RequestParser:
+    def parse(self, message: str) -> Request: ...
+
+
 class RequestHandler:
-    async def handle(self, messsage: str) -> str:
-        print(f"Received message: {messsage}")
-        return "Hello from server!"
+    def __init__(self):
+        self.router = Router()
+        self.parser = RequestParser()
+
+    async def handle(self, data: bytes) -> bytes:
+        request = Request(data)
+        response = self.router.route(request)
+        return response.build()
 
 
 class Server:
@@ -26,11 +47,10 @@ class Server:
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ):
         data = await reader.read(READ_SIZE)
-        message = data.decode()
 
-        response = await self.handler.handle(message)
+        response = await self.handler.handle(data)
 
-        writer.write(response.encode())
+        writer.write(response)
         await writer.drain()
 
         writer.close()
@@ -42,4 +62,5 @@ async def main():
     await server.run()
 
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
